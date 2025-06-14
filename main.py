@@ -8,7 +8,7 @@ BACKGROUND_IMAGE = "wilderness.png"
 
 ICON_CATEGORIES = {
     "Bearbeitung": ["delete.png"],
-    "Tiere": ["icon.png", "icon1.png"],
+    "Tiere": ["icon.png", "icon1.png", "icon3.png", "icon4.png", "icon5.png", "icon6.png", "icon2.png", "icon7.png", "icon8.png", "icon9.png", "icon10.png", "icon10 copy.png", "icon10 copy 2.png", "icon10 copy 3.png", "icon10 copy 4.png", "icon10 copy 5.png", "icon10 copy 6.png", "icon10 copy 7.png", "icon10 copy 8.png"],
     "Pflanzen": ["icon2.png"],
 }
 
@@ -125,7 +125,9 @@ def redraw_canvas():
         draw_overlay(o["path"], o["row"], o["col"])
 
 
-# === Buttons für Kategorien und Icons horizontal anordnen ===
+# === Buttons für Kategorien und Icons horizontal anordnen (max 8 pro Zeile) ===
+MAX_ICONS_PER_ROW = 8
+
 for category, icons in ICON_CATEGORIES.items():
     label = tk.Label(left_panel, text=category, font=("Arial", 12, "bold"))
     label.pack(anchor="w", pady=(10, 0))
@@ -133,7 +135,7 @@ for category, icons in ICON_CATEGORIES.items():
     btn_frame = tk.Frame(left_panel)
     btn_frame.pack(anchor="w", pady=5)
 
-    for path in icons:
+    for i, path in enumerate(icons):
         try:
             img = Image.open(path)
             img.thumbnail((40, 40))
@@ -145,11 +147,14 @@ for category, icons in ICON_CATEGORIES.items():
         btn = tk.Button(btn_frame, image=tk_icon,
                         command=lambda p=path: select_icon(p))
         btn.image = tk_icon
-        btn.pack(side="left", padx=3)
+        row = i // MAX_ICONS_PER_ROW
+        col = i % MAX_ICONS_PER_ROW
+        btn.grid(row=row, column=col, padx=3, pady=3)
 
         # Speziell für Delete-Button Referenz speichern
         if path == "delete.png":
             delete_btn = btn
+
 
 # Delete-Button Klick toggelt den Löschmodus
 delete_btn.config(command=lambda: set_delete_mode(not delete_mode))
