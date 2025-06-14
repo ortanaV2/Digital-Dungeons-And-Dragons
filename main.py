@@ -1,62 +1,161 @@
-import matplotlib.pyplot as plt
-from PIL import Image
-import numpy as np
+import tkinter as tk
+from PIL import Image, ImageTk
 
-def show_image_with_grid(image_path, rows, cols, overlays=[]):
-    # Hintergrundbild laden
-    bg_img = Image.open(image_path)
-    width, height = bg_img.size
-    bg_array = np.array(bg_img)
+# === Konfiguration ===
+GRID_ROWS = 8
+GRID_COLS = 8
+BACKGROUND_IMAGE = "wilderness.png"
 
-    # Plot vorbereiten
-    fig, ax = plt.subplots()
-    ax.imshow(bg_array)
+ICON_CATEGORIES = {
+    "Bearbeitung": ["delete.png"],
+    "Tiere": ["icon.png", "icon1.png"],
+    "Pflanzen": ["icon2.png"],
+}
 
+# === Zustand ===
+overlays = []  # gespeicherte Icons auf dem Grid: dict mit row, col, path
+selected_icon_path = None
+delete_mode = False  # Löschen-Modus an/aus
+icon_images = {}
+
+# === Tkinter Setup ===
+root = tk.Tk()
+root.title("Tkinter Grid Editor")
+
+# Hintergrundbild laden und skalieren
+bg_img = Image.open(BACKGROUND_IMAGE)
+img_width, img_height = bg_img.size
+
+screen_w, screen_h = root.winfo_screenwidth(), root.winfo_screenheight()
+max_w, max_h = int(screen_w * 0.9), int(screen_h * 0.9)
+scale = min(max_w / img_width, max_h / img_height, 1.0)
+
+canvas_w = int(img_width * scale)
+canvas_h = int(img_height * scale)
+
+resized_bg = bg_img.resize((canvas_w, canvas_h), Image.LANCZOS)
+tk_bg_img = ImageTk.PhotoImage(resized_bg)
+
+# === Layoutstruktur: links Buttons, rechts Canvas ===
+main_frame = tk.Frame(root)
+main_frame.pack(fill="both", expand=True)
+
+left_panel = tk.Frame(main_frame)
+left_panel.pack(side="left", fill="y", padx=10, pady=10)
+
+canvas_frame = tk.Frame(main_frame)
+canvas_frame.pack(side="right", expand=True)
+
+canvas = tk.Canvas(canvas_frame, width=canvas_w, height=canvas_h)
+canvas.pack()
+
+canvas.create_image(0, 0, anchor="nw", image=tk_bg_img)
+
+cell_w = canvas_w / GRID_COLS
+cell_h = canvas_h / GRID_ROWS
+
+# Grid zeichnen
+for i in range(1, GRID_ROWS):
+    y = i * cell_h
+    canvas.create_line(0, y, canvas_w, y, fill="black")
+for j in range(1, GRID_COLS):
+    x = j * cell_w
+    canvas.create_line(x, 0, x, canvas_h, fill="black")
+
+
+# === Funktionen ===
+def select_icon(path):
+    global selected_icon_path, delete_mode
+    selected_icon_path = path
+    # Löschen-Modus abschalten wenn neuer Icon ausgewählt wird
+    if path != "delete.png":
+        set_delete_mode(False)
+
+
+def set_delete_mode(active):
+    global delete_mode, selected_icon_path
+    delete_mode = active
+    if active:
+        selected_icon_path = None
+        delete_btn.config(relief="sunken")
+    else:
+        delete_btn.config(relief="raised")
+
+
+def on_canvas_click(event):
+    col = int(event.x // cell_w)
+    row = int(event.y // cell_h)
+
+    if delete_mode:
+        # Icon in dieser Zelle entfernen, falls vorhanden
+        global overlays
+        overlays = [o for o in overlays if not (o["row"] == row and o["col"] == col)]
+        redraw_canvas()
+    elif selected_icon_path:
+        # Icon hinzufügen
+        overlays.append({"path": selected_icon_path, "row": row, "col": col})
+        draw_overlay(selected_icon_path, row, col)
+
+
+def draw_overlay(path, row, col):
+    if path not in icon_images:
+        img = Image.open(path)
+        img.thumbnail((cell_w * 0.8, cell_h * 0.8), Image.LANCZOS)
+        icon_images[path] = ImageTk.PhotoImage(img)
+
+    icon = icon_images[path]
+    x = col * cell_w + cell_w / 2
+    y = row * cell_h + cell_h / 2
+
+    canvas.create_image(x, y, image=icon, anchor="center")
+
+
+def redraw_canvas():
+    canvas.delete("all")
+    canvas.create_image(0, 0, anchor="nw", image=tk_bg_img)
     # Grid zeichnen
-    for row in range(1, rows):
-        y = row * height / rows
-        ax.axhline(y=y, color='black', linewidth=1.5)
+    for i in range(1, GRID_ROWS):
+        y = i * cell_h
+        canvas.create_line(0, y, canvas_w, y, fill="black")
+    for j in range(1, GRID_COLS):
+        x = j * cell_w
+        canvas.create_line(x, 0, x, canvas_h, fill="black")
 
-    for col in range(1, cols):
-        x = col * width / cols
-        ax.axvline(x=x, color='black', linewidth=1.5)
-
-    # Overlays platzieren
-    for overlay in overlays:
-        place_image_in_cell(ax, overlay['path'], overlay['row'], overlay['col'], rows, cols, width, height)
-
-    # Achsen auf Bildgröße fixieren (wichtiger Fix!)
-    ax.set_xlim(0, width)
-    ax.set_ylim(height, 0)
-
-    ax.set_xticks([])
-    ax.set_yticks([])
-    plt.title(f"Grid: {rows} x {cols}")
-    plt.show()
+    for o in overlays:
+        draw_overlay(o["path"], o["row"], o["col"])
 
 
-def place_image_in_cell(ax, image_path, cell_row, cell_col, total_rows, total_cols, total_width, total_height):
-    cell_width = total_width / total_cols
-    cell_height = total_height / total_rows
+# === Buttons für Kategorien und Icons horizontal anordnen ===
+for category, icons in ICON_CATEGORIES.items():
+    label = tk.Label(left_panel, text=category, font=("Arial", 12, "bold"))
+    label.pack(anchor="w", pady=(10, 0))
 
-    center_x = (cell_col + 0.5) * cell_width
-    center_y = (cell_row + 0.5) * cell_height
+    btn_frame = tk.Frame(left_panel)
+    btn_frame.pack(anchor="w", pady=5)
 
-    img = Image.open(image_path)
-    img.thumbnail((cell_width * 0.8, cell_height * 0.8), Image.LANCZOS)
-    img_array = np.array(img)
+    for path in icons:
+        try:
+            img = Image.open(path)
+            img.thumbnail((40, 40))
+            tk_icon = ImageTk.PhotoImage(img)
+        except Exception as e:
+            print(f"Fehler beim Laden von {path}: {e}")
+            continue
 
-    x0 = center_x - img.width / 2
-    y0 = center_y - img.height / 2
+        btn = tk.Button(btn_frame, image=tk_icon,
+                        command=lambda p=path: select_icon(p))
+        btn.image = tk_icon
+        btn.pack(side="left", padx=3)
 
-    ax.imshow(img_array, extent=(x0, x0 + img.width, y0 + img.height, y0), zorder=10)
+        # Speziell für Delete-Button Referenz speichern
+        if path == "delete.png":
+            delete_btn = btn
 
+# Delete-Button Klick toggelt den Löschmodus
+delete_btn.config(command=lambda: set_delete_mode(not delete_mode))
 
-# Beispiel: mehrere Bilder in Zellen platzieren
-overlays = [
-    {"path": "icon.png", "row": 2, "col": 3},
-    {"path": "icon.png", "row": 5, "col": 1},
-    {"path": "icon.png", "row": 0, "col": 0},
-]
+# === Events ===
+canvas.bind("<Button-1>", on_canvas_click)
 
-show_image_with_grid("wilderness.png", rows=8, cols=8, overlays=overlays)
+# === Start ===
+root.mainloop()
