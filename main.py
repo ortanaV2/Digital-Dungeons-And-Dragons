@@ -1,4 +1,5 @@
 import tkinter as tk
+import os
 from PIL import Image, ImageTk
 
 GRID_ROWS = 8
@@ -7,9 +8,22 @@ BACKGROUND_IMAGE = "wilderness.png"
 
 ICON_CATEGORIES = {
     "Bearbeitung": ["delete.png"],
-    "Tiere": ["icon.png", "icon1.png", "icon3.png", "icon4.png", "icon5.png", "icon6.png", "icon2.png", "icon7.png", "icon8.png", "icon9.png", "icon10.png", "icon10 copy.png", "icon10 copy 2.png", "icon10 copy 3.png", "icon10 copy 4.png", "icon10 copy 5.png", "icon10 copy 6.png", "icon10 copy 7.png", "icon10 copy 8.png"],
-    "Pflanzen": ["icon2.png"],
+    "Natur": [],
+    "Tiere": [],
+    "Charaktere": [],
+    "Objekte": [],
 }
+
+for filename in os.listdir():
+    if filename.endswith(".png"):
+        if filename.startswith("Character_"):
+            ICON_CATEGORIES["Charaktere"].append(filename)
+        elif filename.startswith("Nature_"):
+            ICON_CATEGORIES["Natur"].append(filename)
+        elif filename.startswith("Objects_"):
+            ICON_CATEGORIES["Objekte"].append(filename)
+        elif filename.startswith("Animal_"):
+            ICON_CATEGORIES["Tiere"].append(filename)
 
 overlays = []
 selected_icon_path = None
@@ -108,7 +122,7 @@ def redraw_canvas():
     for o in overlays:
         draw_overlay(o["path"], o["row"], o["col"])
 
-MAX_ICONS_PER_ROW = 8
+MAX_ICONS_PER_ROW = 12
 
 for category, icons in ICON_CATEGORIES.items():
     label = tk.Label(left_panel, text=category, font=("Arial", 12, "bold"))
@@ -120,7 +134,7 @@ for category, icons in ICON_CATEGORIES.items():
     for i, path in enumerate(icons):
         try:
             img = Image.open(path)
-            img.thumbnail((40, 40))
+            img.thumbnail((60, 60))
             tk_icon = ImageTk.PhotoImage(img)
         except Exception as e:
             print(f"Fehler beim Laden von {path}: {e}")
