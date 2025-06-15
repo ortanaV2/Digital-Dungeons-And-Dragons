@@ -15,6 +15,7 @@ ICON_CATEGORIES = {
     "Objekte": [],
 }
 
+# Icons automatisch einsortieren
 for filename in os.listdir():
     if filename.endswith(".png"):
         if filename.startswith("Character_"):
@@ -26,6 +27,33 @@ for filename in os.listdir():
         elif filename.startswith("Animal_"):
             ICON_CATEGORIES["Tiere"].append(filename)
 
+# Tooltip-Klasse
+class ToolTip:
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self.tooltip = None
+        self.widget.bind("<Enter>", self.show)
+        self.widget.bind("<Leave>", self.hide)
+
+    def show(self, event=None):
+        if self.tooltip or not self.text:
+            return
+        x = self.widget.winfo_rootx() + 40
+        y = self.widget.winfo_rooty() + 10
+        self.tooltip = tk.Toplevel(self.widget)
+        self.tooltip.overrideredirect(True)
+        self.tooltip.geometry(f"+{x}+{y}")
+        label = tk.Label(self.tooltip, text=self.text, bg="white", relief="solid",
+                         borderwidth=1, font=("Arial", 10), padx=4, pady=2)
+        label.pack()
+
+    def hide(self, event=None):
+        if self.tooltip:
+            self.tooltip.destroy()
+            self.tooltip = None
+
+# Globale Variablen
 overlays = []
 selected_icon_path = None
 delete_mode = False
@@ -49,7 +77,6 @@ def set_delete_mode(active):
 def on_canvas_click(event):
     col = int(event.x // cell_w)
     row = int(event.y // cell_h)
-
     if delete_mode:
         delete_overlay_at(row, col)
     elif selected_icon_path:
@@ -68,13 +95,16 @@ def delete_overlay_at(row, col):
 
 def draw_overlay(path, row, col):
     if path not in icon_images:
+        no_padding_objects = ["Object_Tree", "Object_Rock_Stone", "Object_Rock_Dirt"]
+        padding = 1.0 if any(name in path for name in no_padding_objects) else 0.8
         img = Image.open(path)
-        img.thumbnail((cell_w * 0.8, cell_h * 0.8), Image.LANCZOS)
+        img.thumbnail((cell_w * padding, cell_h * padding), Image.LANCZOS)
         icon_images[path] = ImageTk.PhotoImage(img)
+
     icon = icon_images[path]
     x = col * cell_w + cell_w / 2
     y = row * cell_h + cell_h / 2
-    canvas.create_image(x, y, image=icon, anchor="center")
+    canvas.create_image(x, y, image=icon, anchor="center", tags=("icon_" + os.path.basename(path),))
 
 def redraw_canvas():
     global cell_w, cell_h
@@ -121,10 +151,9 @@ def change_map():
 
     canvas.config(width=canvas_w, height=canvas_h)
     redraw_canvas()
-
     icon_images.clear()
 
-
+# Hauptfenster
 root = tk.Tk()
 root.title("Digital Dungeons-And-Dragons")
 
@@ -133,7 +162,6 @@ img_width, img_height = bg_img.size
 screen_w, screen_h = root.winfo_screenwidth(), root.winfo_screenheight()
 max_w, max_h = int(screen_w * 0.9), int(screen_h * 0.9)
 scale = min(max_w / img_width, max_h / img_height, 1.0)
-
 canvas_w = int(img_width * scale)
 canvas_h = int(img_height * scale)
 resized_bg = bg_img.resize((canvas_w, canvas_h), Image.LANCZOS)
@@ -196,12 +224,13 @@ for category, icons in ICON_CATEGORIES.items():
             print(f"Fehler beim Laden von {path}: {e}")
             continue
 
-        btn = tk.Button(btn_frame, image=tk_icon,
-                        command=lambda p=path: select_icon(p))
+        btn = tk.Button(btn_frame, image=tk_icon, command=lambda p=path: select_icon(p))
         btn.image = tk_icon
         row = i // MAX_ICONS_PER_ROW
         col = i % MAX_ICONS_PER_ROW
         btn.grid(row=row, column=col, padx=3, pady=3)
+
+        ToolTip(btn, os.path.basename(path))  # Tooltip für Button
 
         if path == "delete.png":
             delete_btn = btn
@@ -210,5 +239,21 @@ delete_btn.config(command=lambda: set_delete_mode(not delete_mode))
 
 canvas.bind("<Button-1>", on_canvas_click)
 canvas.bind("<Button-3>", on_canvas_right_click)
+
+tooltip = tk.Label(canvas, text="", bg="white", relief="solid", borderwidth=1, font=("Arial", 10), padx=4, pady=2)
+tooltip.place_forget()
+
+def on_mouse_move(event):
+    items = canvas.find_overlapping(event.x, event.y, event.x, event.y)
+    for item in items:
+        tag = canvas.gettags(item)
+        if tag and tag[0].startswith("icon_"):
+            icon_name = tag[0][5:]
+            tooltip.config(text=icon_name)
+            tooltip.place(x=event.x + 15, y=event.y + 10)
+            return
+    tooltip.place_forget()
+
+canvas.bind("<Motion>", on_mouse_move)
 
 root.mainloop()
