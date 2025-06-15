@@ -15,6 +15,7 @@ ICON_CATEGORIES = {
     "Tiere": [],
     "Charaktere": [],
     "Objekte": [],
+    "Effekte": []
 }
 
 for filename in os.listdir(ICON_FOLDER):
@@ -28,6 +29,8 @@ for filename in os.listdir(ICON_FOLDER):
             ICON_CATEGORIES["Objekte"].append(full_path)
         elif filename.startswith("Animal_"):
             ICON_CATEGORIES["Tiere"].append(full_path)
+        elif filename.startswith("Effect"):
+            ICON_CATEGORIES["Effekte"].append(full_path)
         elif filename == "delete.png":
             ICON_CATEGORIES["Bearbeitung"][0] = full_path
 
@@ -73,7 +76,10 @@ def delete_overlay_at(row, col):
 
 def draw_overlay(path, row, col):
     if path not in icon_images:
-        no_padding_objects = ["Object_Tree", "Object_Rock_Stone", "Object_Rock_Dirt", "Object_Wood_Log", "Object_Tree_Bush", "Object_Tree_2", "Object_Woord_Log_2", "Object_Wood_Log_3", "Object_Mud", "Object_Mud_2", "Object_Water"]
+        no_padding_objects = ["Object_Tree", "Object_Rock_Stone", "Object_Rock_Dirt", "Object_Wood_Log", 
+                              "Object_Tree_Bush", "Object_Tree_2", "Object_Woord_Log_2", "Object_Wood_Log_3", 
+                              "Object_Mud", "Object_Mud_2", "Object_Water", "Effect_Healing", "Effect_Venom", 
+                              "Effect_Strength", "Effect_Electric", "Effect_Magic", "Effect_Weakness"]
         padding = 1.0 if any(name in path for name in no_padding_objects) else 0.8
         img = Image.open(path)
         img.thumbnail((cell_w * padding, cell_h * padding), Image.LANCZOS)
@@ -146,25 +152,37 @@ tk_bg_img = ImageTk.PhotoImage(resized_bg)
 main_frame = tk.Frame(root, bg="#222222")
 main_frame.pack(fill="both", expand=True)
 
-left_panel = tk.Frame(main_frame, bg="#222222")
-left_panel.pack(side="left", fill="y", padx=10, pady=10)
+left_panel_container = tk.Frame(main_frame, bg="#222222")
+left_panel_container.pack(side="left", fill="y", padx=(10, 0), pady=10)
+
+scrollbar = tk.Scrollbar(left_panel_container, orient="vertical")
+scrollbar.pack(side="left", fill="y")
+
+canvas_left = tk.Canvas(left_panel_container, bg="#222222", highlightthickness=0, yscrollcommand=scrollbar.set, width=490)
+canvas_left.pack(side="left", fill="y")
+
+scrollable_frame = tk.Frame(canvas_left, bg="#222222", padx=10)
+canvas_window = canvas_left.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+scrollbar.config(command=canvas_left.yview)
+
+scrollable_frame.bind(
+    "<Configure>", lambda e: canvas_left.configure(scrollregion=canvas_left.bbox("all"))
+)
 
 top_controls = tk.Frame(main_frame, bg="#222222")
 top_controls.pack(side="top", anchor="ne", padx=10, pady=5)
 
-tk.Label(top_controls, text="Zeilen:", bg="#222222", fg="white").pack(side="left", padx=(0, 5))
-
-entry_rows = tk.Entry(top_controls, width=4, bg="#333333", fg="white", insertbackground="white",
-                      relief="flat", highlightthickness=1, highlightbackground="#555", highlightcolor="#777")
-entry_rows.insert(0, str(GRID_ROWS))
-entry_rows.pack(side="left", padx=(0, 10))
-
-tk.Label(top_controls, text="Spalten:", bg="#222222", fg="white").pack(side="left", padx=(0, 5))
-
-entry_cols = tk.Entry(top_controls, width=4, bg="#333333", fg="white", insertbackground="white",
-                      relief="flat", highlightthickness=1, highlightbackground="#555", highlightcolor="#777")
-entry_cols.insert(0, str(GRID_COLS))
-entry_cols.pack(side="left", padx=(0, 10))
+for label_text, entry_var in [("Zeilen:", GRID_ROWS), ("Spalten:", GRID_COLS)]:
+    tk.Label(top_controls, text=label_text, bg="#222222", fg="white").pack(side="left", padx=(0, 5))
+    entry = tk.Entry(top_controls, width=4, bg="#333333", fg="white", insertbackground="white",
+                     relief="flat", highlightthickness=1, highlightbackground="#555", highlightcolor="#777")
+    entry.insert(0, str(entry_var))
+    entry.pack(side="left", padx=(0, 10))
+    if label_text.startswith("Z"):
+        entry_rows = entry
+    else:
+        entry_cols = entry
 
 btn_map = tk.Button(
     top_controls,
@@ -181,7 +199,6 @@ btn_map = tk.Button(
     font=("Arial", 10, "bold")
 )
 btn_map.pack(side="left")
-
 btn_map.bind("<Enter>", lambda e: e.widget.config(bg="#555555"))
 btn_map.bind("<Leave>", lambda e: e.widget.config(bg="#444444"))
 
@@ -190,8 +207,8 @@ canvas_frame.pack(side="right", expand=True)
 
 canvas = tk.Canvas(canvas_frame, width=canvas_w, height=canvas_h, bg="#222222", highlightthickness=0)
 canvas.pack()
-
 canvas.create_image(0, 0, anchor="nw", image=tk_bg_img)
+
 cell_w = canvas_w / GRID_COLS
 cell_h = canvas_h / GRID_ROWS
 
@@ -212,13 +229,12 @@ def on_mouse_move(event):
 
 canvas.bind("<Motion>", on_mouse_move)
 
-MAX_ICONS_PER_ROW = 12
-
+MAX_ICONS_PER_ROW = 7
 for category, icons in ICON_CATEGORIES.items():
-    label = tk.Label(left_panel, text=category, font=("Arial", 12, "bold"), bg="#222222", fg="white")
+    label = tk.Label(scrollable_frame, text=category, font=("Arial", 12, "bold"), bg="#222222", fg="white")
     label.pack(anchor="w", pady=(10, 0))
 
-    btn_frame = tk.Frame(left_panel, bg="#222222")
+    btn_frame = tk.Frame(scrollable_frame, bg="#222222")
     btn_frame.pack(anchor="w", pady=5)
 
     for i, path in enumerate(icons):
@@ -246,7 +262,8 @@ for category, icons in ICON_CATEGORIES.items():
         if os.path.basename(path) == "delete.png":
             delete_btn = btn
 
-delete_btn.config(command=lambda: set_delete_mode(not delete_mode))
+if delete_btn:
+    delete_btn.config(command=lambda: set_delete_mode(not delete_mode))
 
 def tooltip_show(path, event):
     tooltip.config(text=os.path.basename(path))
