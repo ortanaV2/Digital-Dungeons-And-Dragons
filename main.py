@@ -5,7 +5,7 @@ from PIL import Image, ImageTk
 
 GRID_ROWS = 8
 GRID_COLS = 8
-BACKGROUND_IMAGE = "wilderness.png"
+BACKGROUND_IMAGE = "Wilderness - 8x8.png"
 
 ICON_CATEGORIES = {
     "Bearbeitung": ["delete.png"],
@@ -21,7 +21,7 @@ for filename in os.listdir():
             ICON_CATEGORIES["Charaktere"].append(filename)
         elif filename.startswith("Nature_"):
             ICON_CATEGORIES["Natur"].append(filename)
-        elif filename.startswith("Objects_"):
+        elif filename.startswith("Object_"):
             ICON_CATEGORIES["Objekte"].append(filename)
         elif filename.startswith("Animal_"):
             ICON_CATEGORIES["Tiere"].append(filename)
@@ -121,6 +121,9 @@ def change_map():
 
     canvas.config(width=canvas_w, height=canvas_h)
     redraw_canvas()
+
+    icon_images.clear()
+
 
 root = tk.Tk()
 root.title("Digital Dungeons-And-Dragons")
