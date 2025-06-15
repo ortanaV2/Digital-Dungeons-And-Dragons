@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import filedialog
 import os
 from PIL import Image, ImageTk
 
@@ -30,46 +31,6 @@ selected_icon_path = None
 delete_mode = False
 icon_images = {}
 
-root = tk.Tk()
-root.title("Digital Dungeons-And-Dragons")
-
-bg_img = Image.open(BACKGROUND_IMAGE)
-img_width, img_height = bg_img.size
-
-screen_w, screen_h = root.winfo_screenwidth(), root.winfo_screenheight()
-max_w, max_h = int(screen_w * 0.9), int(screen_h * 0.9)
-scale = min(max_w / img_width, max_h / img_height, 1.0)
-
-canvas_w = int(img_width * scale)
-canvas_h = int(img_height * scale)
-
-resized_bg = bg_img.resize((canvas_w, canvas_h), Image.LANCZOS)
-tk_bg_img = ImageTk.PhotoImage(resized_bg)
-
-main_frame = tk.Frame(root)
-main_frame.pack(fill="both", expand=True)
-
-left_panel = tk.Frame(main_frame)
-left_panel.pack(side="left", fill="y", padx=10, pady=10)
-
-canvas_frame = tk.Frame(main_frame)
-canvas_frame.pack(side="right", expand=True)
-
-canvas = tk.Canvas(canvas_frame, width=canvas_w, height=canvas_h)
-canvas.pack()
-
-canvas.create_image(0, 0, anchor="nw", image=tk_bg_img)
-
-cell_w = canvas_w / GRID_COLS
-cell_h = canvas_h / GRID_ROWS
-
-for i in range(1, GRID_ROWS):
-    y = i * cell_h
-    canvas.create_line(0, y, canvas_w, y, fill="black", width=1.5)
-for j in range(1, GRID_COLS):
-    x = j * cell_w
-    canvas.create_line(x, 0, x, canvas_h, fill="black", width=1.5)
-
 def select_icon(path):
     global selected_icon_path, delete_mode
     selected_icon_path = path
@@ -90,37 +51,129 @@ def on_canvas_click(event):
     row = int(event.y // cell_h)
 
     if delete_mode:
-        global overlays
-        overlays = [o for o in overlays if not (o["row"] == row and o["col"] == col)]
-        redraw_canvas()
+        delete_overlay_at(row, col)
     elif selected_icon_path:
         overlays.append({"path": selected_icon_path, "row": row, "col": col})
         draw_overlay(selected_icon_path, row, col)
+
+def on_canvas_right_click(event):
+    col = int(event.x // cell_w)
+    row = int(event.y // cell_h)
+    delete_overlay_at(row, col)
+
+def delete_overlay_at(row, col):
+    global overlays
+    overlays = [o for o in overlays if not (o["row"] == row and o["col"] == col)]
+    redraw_canvas()
 
 def draw_overlay(path, row, col):
     if path not in icon_images:
         img = Image.open(path)
         img.thumbnail((cell_w * 0.8, cell_h * 0.8), Image.LANCZOS)
         icon_images[path] = ImageTk.PhotoImage(img)
-
     icon = icon_images[path]
     x = col * cell_w + cell_w / 2
     y = row * cell_h + cell_h / 2
-
     canvas.create_image(x, y, image=icon, anchor="center")
 
 def redraw_canvas():
+    global cell_w, cell_h
     canvas.delete("all")
     canvas.create_image(0, 0, anchor="nw", image=tk_bg_img)
+    cell_w = canvas_w / GRID_COLS
+    cell_h = canvas_h / GRID_ROWS
     for i in range(1, GRID_ROWS):
         y = i * cell_h
         canvas.create_line(0, y, canvas_w, y, fill="black", width=1.5)
     for j in range(1, GRID_COLS):
         x = j * cell_w
         canvas.create_line(x, 0, x, canvas_h, fill="black", width=1.5)
-
     for o in overlays:
         draw_overlay(o["path"], o["row"], o["col"])
+
+def change_map():
+    global tk_bg_img, bg_img, canvas_w, canvas_h, canvas, cell_w, cell_h, GRID_ROWS, GRID_COLS
+    file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg")])
+    if not file_path:
+        return
+    try:
+        bg_img = Image.open(file_path)
+    except Exception as e:
+        print("Fehler beim Laden des Bilds:", e)
+        return
+
+    try:
+        GRID_ROWS = int(entry_rows.get())
+        GRID_COLS = int(entry_cols.get())
+    except ValueError:
+        print("Ungültige Eingabe für Grid-Größe.")
+        return
+
+    img_width, img_height = bg_img.size
+    screen_w, screen_h = root.winfo_screenwidth(), root.winfo_screenheight()
+    max_w, max_h = int(screen_w * 0.9), int(screen_h * 0.9)
+    scale = min(max_w / img_width, max_h / img_height, 1.0)
+
+    canvas_w = int(img_width * scale)
+    canvas_h = int(img_height * scale)
+    resized_bg = bg_img.resize((canvas_w, canvas_h), Image.LANCZOS)
+    tk_bg_img = ImageTk.PhotoImage(resized_bg)
+
+    canvas.config(width=canvas_w, height=canvas_h)
+    redraw_canvas()
+
+root = tk.Tk()
+root.title("Digital Dungeons-And-Dragons")
+
+bg_img = Image.open(BACKGROUND_IMAGE)
+img_width, img_height = bg_img.size
+screen_w, screen_h = root.winfo_screenwidth(), root.winfo_screenheight()
+max_w, max_h = int(screen_w * 0.9), int(screen_h * 0.9)
+scale = min(max_w / img_width, max_h / img_height, 1.0)
+
+canvas_w = int(img_width * scale)
+canvas_h = int(img_height * scale)
+resized_bg = bg_img.resize((canvas_w, canvas_h), Image.LANCZOS)
+tk_bg_img = ImageTk.PhotoImage(resized_bg)
+
+main_frame = tk.Frame(root)
+main_frame.pack(fill="both", expand=True)
+
+left_panel = tk.Frame(main_frame)
+left_panel.pack(side="left", fill="y", padx=10, pady=10)
+
+top_controls = tk.Frame(main_frame)
+top_controls.pack(side="top", anchor="ne", padx=10, pady=5)
+
+tk.Label(top_controls, text="Zeilen:").pack(side="left")
+entry_rows = tk.Entry(top_controls, width=4)
+entry_rows.insert(0, str(GRID_ROWS))
+entry_rows.pack(side="left", padx=5)
+
+tk.Label(top_controls, text="Spalten:").pack(side="left")
+entry_cols = tk.Entry(top_controls, width=4)
+entry_cols.insert(0, str(GRID_COLS))
+entry_cols.pack(side="left", padx=5)
+
+btn_map = tk.Button(top_controls, text="Change Map", command=change_map)
+btn_map.pack(side="left", padx=10)
+
+canvas_frame = tk.Frame(main_frame)
+canvas_frame.pack(side="right", expand=True)
+
+canvas = tk.Canvas(canvas_frame, width=canvas_w, height=canvas_h)
+canvas.pack()
+
+canvas.create_image(0, 0, anchor="nw", image=tk_bg_img)
+cell_w = canvas_w / GRID_COLS
+cell_h = canvas_h / GRID_ROWS
+
+for i in range(1, GRID_ROWS):
+    y = i * cell_h
+    canvas.create_line(0, y, canvas_w, y, fill="black", width=1.5)
+for j in range(1, GRID_COLS):
+    x = j * cell_w
+    canvas.create_line(x, 0, x, canvas_h, fill="black", width=1.5)
 
 MAX_ICONS_PER_ROW = 12
 
@@ -153,5 +206,6 @@ for category, icons in ICON_CATEGORIES.items():
 delete_btn.config(command=lambda: set_delete_mode(not delete_mode))
 
 canvas.bind("<Button-1>", on_canvas_click)
+canvas.bind("<Button-3>", on_canvas_right_click)
 
 root.mainloop()
