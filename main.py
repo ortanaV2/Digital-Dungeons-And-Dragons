@@ -106,7 +106,6 @@ def change_map():
         print("Ungültige Eingabe für Grid-Größe.")
         return
 
-    # Alle vorherigen Overlays löschen bei Map-Wechsel
     overlays.clear()
 
     img_width, img_height = bg_img.size
@@ -149,7 +148,6 @@ left_panel.pack(side="left", fill="y", padx=10, pady=10)
 top_controls = tk.Frame(main_frame, bg="#222222")
 top_controls.pack(side="top", anchor="ne", padx=10, pady=5)
 
-# Modernisierte Eingabefelder und Button ohne 3D Effekt:
 tk.Label(top_controls, text="Zeilen:", bg="#222222", fg="white").pack(side="left", padx=(0, 5))
 
 entry_rows = tk.Entry(top_controls, width=4, bg="#333333", fg="white", insertbackground="white",
@@ -180,7 +178,6 @@ btn_map = tk.Button(
 )
 btn_map.pack(side="left")
 
-# Optional: Hover-Effekt für Change Map Button
 def on_enter(e):
     e.widget.config(bg="#555555")
 
@@ -200,7 +197,7 @@ canvas.create_image(0, 0, anchor="nw", image=tk_bg_img)
 cell_w = canvas_w / GRID_COLS
 cell_h = canvas_h / GRID_ROWS
 
-tooltip = tk.Label(root, text="", bg="white", relief="solid", borderwidth=1, font=("Arial", 10), padx=4, pady=2)
+tooltip = tk.Label(root, text="", bg="#545454", fg="#c7c7c7", relief="solid", borderwidth=1, font=("Arial", 10), padx=4, pady=2)
 tooltip.place_forget()
 
 def on_mouse_move(event):
