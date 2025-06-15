@@ -3,9 +3,11 @@ from tkinter import filedialog
 import os
 from PIL import Image, ImageTk
 
+ICON_FOLDER = "icon_pack"
+BACKGROUND_IMAGE = os.path.join(ICON_FOLDER, "Wilderness - 8x8.png")
+
 GRID_ROWS = 8
 GRID_COLS = 8
-BACKGROUND_IMAGE = "Wilderness - 8x8.png"
 
 ICON_CATEGORIES = {
     "Bearbeitung": ["delete.png"],
@@ -15,16 +17,19 @@ ICON_CATEGORIES = {
     "Objekte": [],
 }
 
-for filename in os.listdir():
+for filename in os.listdir(ICON_FOLDER):
     if filename.endswith(".png"):
+        full_path = os.path.join(ICON_FOLDER, filename)
         if filename.startswith("Character_"):
-            ICON_CATEGORIES["Charaktere"].append(filename)
+            ICON_CATEGORIES["Charaktere"].append(full_path)
         elif filename.startswith("Nature_"):
-            ICON_CATEGORIES["Natur"].append(filename)
+            ICON_CATEGORIES["Natur"].append(full_path)
         elif filename.startswith("Object_"):
-            ICON_CATEGORIES["Objekte"].append(filename)
+            ICON_CATEGORIES["Objekte"].append(full_path)
         elif filename.startswith("Animal_"):
-            ICON_CATEGORIES["Tiere"].append(filename)
+            ICON_CATEGORIES["Tiere"].append(full_path)
+        elif filename == "delete.png":
+            ICON_CATEGORIES["Bearbeitung"][0] = full_path
 
 overlays = []
 selected_icon_path = None
@@ -34,7 +39,7 @@ icon_images = {}
 def select_icon(path):
     global selected_icon_path, delete_mode
     selected_icon_path = path
-    if path != "delete.png":
+    if not path.endswith("delete.png"):
         set_delete_mode(False)
 
 def set_delete_mode(active):
@@ -125,7 +130,6 @@ def change_map():
 root = tk.Tk()
 root.title("Digital Dungeons-And-Dragons")
 root.configure(bg="#222222")
-
 root.attributes("-fullscreen", True)
 
 bg_img = Image.open(BACKGROUND_IMAGE)
@@ -178,14 +182,8 @@ btn_map = tk.Button(
 )
 btn_map.pack(side="left")
 
-def on_enter(e):
-    e.widget.config(bg="#555555")
-
-def on_leave(e):
-    e.widget.config(bg="#444444")
-
-btn_map.bind("<Enter>", on_enter)
-btn_map.bind("<Leave>", on_leave)
+btn_map.bind("<Enter>", lambda e: e.widget.config(bg="#555555"))
+btn_map.bind("<Leave>", lambda e: e.widget.config(bg="#444444"))
 
 canvas_frame = tk.Frame(main_frame, bg="#222222")
 canvas_frame.pack(side="right", expand=True)
@@ -197,7 +195,8 @@ canvas.create_image(0, 0, anchor="nw", image=tk_bg_img)
 cell_w = canvas_w / GRID_COLS
 cell_h = canvas_h / GRID_ROWS
 
-tooltip = tk.Label(root, text="", bg="#545454", fg="#c7c7c7", relief="solid", borderwidth=1, font=("Arial", 10), padx=4, pady=2)
+tooltip = tk.Label(root, text="", bg="#222222", fg="white", relief="solid", borderwidth=1,
+                   font=("Arial", 10), padx=4, pady=2)
 tooltip.place_forget()
 
 def on_mouse_move(event):
@@ -244,13 +243,13 @@ for category, icons in ICON_CATEGORIES.items():
         btn.bind("<Enter>", make_tooltip(path))
         btn.bind("<Leave>", lambda e: tooltip.place_forget())
 
-        if path == "delete.png":
+        if os.path.basename(path) == "delete.png":
             delete_btn = btn
 
 delete_btn.config(command=lambda: set_delete_mode(not delete_mode))
 
 def tooltip_show(path, event):
-    tooltip.config(text=path)
+    tooltip.config(text=os.path.basename(path))
     tooltip.place(x=event.widget.winfo_rootx() + 60, y=event.widget.winfo_rooty())
 
 canvas.bind("<Button-1>", on_canvas_click)
