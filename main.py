@@ -79,7 +79,8 @@ def draw_overlay(path, row, col):
         no_padding_objects = ["Nature_Tree", "Nature_Rock_Stone", "Nature_Rock_Dirt", "Nature_Wood_Log", 
                               "Nature_Tree_Bush", "Nature_Tree_2", "Nature_Woord_Log_2", "Nature_Wood_Log_3", 
                               "Nature_Mud", "Nature_Mud_2", "Nature_Water", "Effect_Healing", "Effect_Venom", 
-                              "Effect_Strength", "Effect_Electric", "Effect_Magic", "Effect_Weakness"]
+                              "Effect_Strength", "Effect_Electric", "Effect_Magic", "Effect_Weakness", 
+                              "Object_Wood_Log_4", "Object_Wood_Log_5", "Effect_Ice", "Object_Thorns"]
         padding = 1.0 if any(name in path for name in no_padding_objects) else 0.8
         img = Image.open(path)
         img.thumbnail((cell_w * padding, cell_h * padding), Image.LANCZOS)
