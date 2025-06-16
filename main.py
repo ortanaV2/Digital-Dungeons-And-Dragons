@@ -76,9 +76,9 @@ def delete_overlay_at(row, col):
 
 def draw_overlay(path, row, col):
     if path not in icon_images:
-        no_padding_objects = ["Object_Tree", "Object_Rock_Stone", "Object_Rock_Dirt", "Object_Wood_Log", 
-                              "Object_Tree_Bush", "Object_Tree_2", "Object_Woord_Log_2", "Object_Wood_Log_3", 
-                              "Object_Mud", "Object_Mud_2", "Object_Water", "Effect_Healing", "Effect_Venom", 
+        no_padding_objects = ["Nature_Tree", "Nature_Rock_Stone", "Nature_Rock_Dirt", "Nature_Wood_Log", 
+                              "Nature_Tree_Bush", "Nature_Tree_2", "Nature_Woord_Log_2", "Nature_Wood_Log_3", 
+                              "Nature_Mud", "Nature_Mud_2", "Nature_Water", "Effect_Healing", "Effect_Venom", 
                               "Effect_Strength", "Effect_Electric", "Effect_Magic", "Effect_Weakness"]
         padding = 1.0 if any(name in path for name in no_padding_objects) else 0.8
         img = Image.open(path)
