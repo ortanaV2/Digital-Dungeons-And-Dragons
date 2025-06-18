@@ -4,7 +4,7 @@ import os
 from PIL import Image, ImageTk
 
 ICON_FOLDER = "icon_pack"
-BACKGROUND_IMAGE = os.path.join(ICON_FOLDER, "Wilderness - 8x8.png")
+BACKGROUND_IMAGE = os.path.join(ICON_FOLDER, "./Maps/Wilderness - 8x8.png")
 
 GRID_ROWS = 8
 GRID_COLS = 8
