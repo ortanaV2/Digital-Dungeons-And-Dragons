@@ -4,7 +4,7 @@ import os
 from PIL import Image, ImageTk
 
 ICON_FOLDER = "icon_pack"
-BACKGROUND_IMAGE = os.path.join(ICON_FOLDER, "Wilderness - 8x8.png")
+BACKGROUND_IMAGE = os.path.join(ICON_FOLDER, "./Maps/Wilderness - 8x8.png")
 
 GRID_ROWS = 8
 GRID_COLS = 8
@@ -159,7 +159,7 @@ left_panel_container.pack(side="left", fill="y", padx=(10, 0), pady=10)
 scrollbar = tk.Scrollbar(left_panel_container, orient="vertical")
 scrollbar.pack(side="left", fill="y")
 
-canvas_left = tk.Canvas(left_panel_container, bg="#222222", highlightthickness=0, yscrollcommand=scrollbar.set, width=490)
+canvas_left = tk.Canvas(left_panel_container, bg="#222222", highlightthickness=0, yscrollcommand=scrollbar.set, width=380)
 canvas_left.pack(side="left", fill="y")
 
 scrollable_frame = tk.Frame(canvas_left, bg="#222222", padx=10)
@@ -230,7 +230,7 @@ def on_mouse_move(event):
 
 canvas.bind("<Motion>", on_mouse_move)
 
-MAX_ICONS_PER_ROW = 7
+MAX_ICONS_PER_ROW = 5
 for category, icons in ICON_CATEGORIES.items():
     label = tk.Label(scrollable_frame, text=category, font=("Arial", 12, "bold"), bg="#222222", fg="white")
     label.pack(anchor="w", pady=(10, 0))
