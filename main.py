@@ -14,6 +14,8 @@ ICON_CATEGORIES = {
     "Natur": [],
     "Tiere": [],
     "Charaktere": [],
+    "NPCs": [],
+    "Extension DND 2.1": [],
     "Objekte": [],
     "Effekte": []
 }
@@ -31,6 +33,10 @@ for filename in os.listdir(ICON_FOLDER):
             ICON_CATEGORIES["Tiere"].append(full_path)
         elif filename.startswith("Effect"):
             ICON_CATEGORIES["Effekte"].append(full_path)
+        elif filename.startswith("NPCs"):
+            ICON_CATEGORIES["NPCs"].append(full_path)
+        elif filename.startswith("VTT"):
+            ICON_CATEGORIES["Extension DND 2.1"].append(full_path)
         elif filename == "delete.png":
             ICON_CATEGORIES["Bearbeitung"][0] = full_path
 
@@ -38,6 +44,46 @@ overlays = []
 selected_icon_path = None
 delete_mode = False
 icon_images = {}
+
+PLACED_CATEGORY = "Platziert"
+placed_icons = set()
+placed_frame = None
+
+def add_to_placed_category(path):
+    if path not in placed_icons:
+        placed_icons.add(path)
+        if placed_frame is None:
+            insert_placed_category_ui()
+        update_placed_category_ui(path)
+
+def insert_placed_category_ui():
+    global placed_frame
+    label = tk.Label(scrollable_frame, text=PLACED_CATEGORY, font=("Arial", 12, "bold"), bg="#222222", fg="white")
+    label.pack(anchor="w", pady=(10, 0))
+    placed_frame = tk.Frame(scrollable_frame, bg="#222222")
+    placed_frame.pack(anchor="w", pady=5)
+
+def update_placed_category_ui(path):
+    try:
+        img = Image.open(path)
+        img.thumbnail((60, 60))
+        tk_icon = ImageTk.PhotoImage(img)
+    except Exception as e:
+        print(f"Fehler beim Nachladen von {path}: {e}")
+        return
+
+    btn = tk.Button(placed_frame, image=tk_icon, command=lambda p=path: select_icon(p),
+                    bg="#333333", activebackground="#555555", borderwidth=0)
+    btn.image = tk_icon
+    row = len(placed_frame.winfo_children()) // MAX_ICONS_PER_ROW
+    col = len(placed_frame.winfo_children()) % MAX_ICONS_PER_ROW
+    btn.grid(row=row, column=col, padx=3, pady=3)
+
+    def make_tooltip(p):
+        return lambda e: tooltip_show(p, e)
+
+    btn.bind("<Enter>", make_tooltip(path))
+    btn.bind("<Leave>", lambda e: tooltip.place_forget())
 
 def select_icon(path):
     global selected_icon_path, delete_mode
@@ -90,6 +136,7 @@ def draw_overlay(path, row, col):
     x = col * cell_w + cell_w / 2
     y = row * cell_h + cell_h / 2
     canvas.create_image(x, y, image=icon, anchor="center", tags=("icon_" + os.path.basename(path),))
+    add_to_placed_category(path)
 
 def redraw_canvas():
     global cell_w, cell_h
@@ -270,7 +317,94 @@ def tooltip_show(path, event):
     tooltip.config(text=os.path.basename(path))
     tooltip.place(x=event.widget.winfo_rootx() + 60, y=event.widget.winfo_rooty())
 
-canvas.bind("<Button-1>", on_canvas_click)
-canvas.bind("<Button-3>", on_canvas_right_click)
+# == CUT & PASTE FEATURE ==
+cut_icon = None
 
+def get_overlay_under_mouse(event):
+    col = int(event.x // cell_w)
+    row = int(event.y // cell_h)
+    for o in overlays:
+        if o["row"] == row and o["col"] == col:
+            return o
+    return None
+
+def on_key_press(event):
+    global cut_icon
+    if event.keysym == "space":
+        x = root.winfo_pointerx() - canvas.winfo_rootx()
+        y = root.winfo_pointery() - canvas.winfo_rooty()
+        dummy_event = type("e", (object,), {"x": x, "y": y})()
+        cut_target = get_overlay_under_mouse(dummy_event)
+        if cut_target:
+            overlays.remove(cut_target)
+            redraw_canvas()
+            cut_icon = cut_target
+            print(f"Icon ausgeschnitten: {cut_icon['path']}")
+
+def on_canvas_click_cut_paste(event):
+    global cut_icon
+    col = int(event.x // cell_w)
+    row = int(event.y // cell_h)
+
+    if cut_icon:
+        new_overlay = {"path": cut_icon["path"], "row": row, "col": col}
+        overlays.append(new_overlay)
+        add_to_placed_category(cut_icon["path"])
+        cut_icon = None
+        redraw_canvas()
+    else:
+        on_canvas_click(event)
+
+# === DYNAMISCHE "PLATZIERT"-KATEGORIE ===
+PLACED_CATEGORY = "Platziert"
+placed_icons = set()
+
+def add_to_placed_category(path):
+    if path not in placed_icons:
+        placed_icons.add(path)
+        if PLACED_CATEGORY not in ICON_CATEGORIES:
+            ICON_CATEGORIES[PLACED_CATEGORY] = []
+            insert_placed_category_ui()
+        ICON_CATEGORIES[PLACED_CATEGORY].append(path)
+        update_placed_category_ui(path)
+
+def insert_placed_category_ui():
+    label = tk.Label(scrollable_frame, text=PLACED_CATEGORY, font=("Arial", 12, "bold"), bg="#222222", fg="white")
+    label.pack(anchor="w", pady=(10, 0))
+
+    frame = tk.Frame(scrollable_frame, bg="#222222")
+    frame.pack(anchor="w", pady=5)
+    ICON_CATEGORIES[PLACED_CATEGORY + "_frame"] = frame
+
+def update_placed_category_ui(path):
+    frame = ICON_CATEGORIES.get(PLACED_CATEGORY + "_frame")
+    if not frame:
+        return
+    try:
+        img = Image.open(path)
+        img.thumbnail((60, 60))
+        tk_icon = ImageTk.PhotoImage(img)
+    except Exception as e:
+        print(f"Fehler beim Nachladen von {path}: {e}")
+        return
+
+    btn = tk.Button(frame, image=tk_icon, command=lambda p=path: select_icon(p),
+                    bg="#333333", activebackground="#555555", borderwidth=0)
+    btn.image = tk_icon
+    btn.grid(row=len(frame.winfo_children()) // MAX_ICONS_PER_ROW, 
+             column=len(frame.winfo_children()) % MAX_ICONS_PER_ROW, 
+             padx=3, pady=3)
+
+    def make_tooltip(p):
+        return lambda e: tooltip_show(p, e)
+    
+    btn.bind("<Enter>", make_tooltip(path))
+    btn.bind("<Leave>", lambda e: tooltip.place_forget())
+
+# === BINDINGS ===
+canvas.bind("<Button-1>", on_canvas_click_cut_paste)
+canvas.bind("<Button-3>", on_canvas_right_click)
+root.bind("<Key>", on_key_press)
+
+# === START MAINLOOP ===
 root.mainloop()
